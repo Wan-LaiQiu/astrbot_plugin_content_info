@@ -1,0 +1,10 @@
+name: astrbot_plugin_content_info
+version: 1.0.0
+desc: 通过/context 获取当前上下文长度
+author: 晚来秋
+repo: https://github.com/Wan-LaiQiu/astrbot_plugin_content_info
+branch: main
+tags:
+  - 工具
+  - 统计
+  - 上下文
