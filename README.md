@@ -34,7 +34,7 @@
 cd <AstrBot安装路径>/data/plugins
 
 # 克隆本仓库
-git clone https://github.com/Wan-LaiQiu/astrbot_content_info.git
+git clone https://github.com/Wan-LaiQiu/astrbot_plugin_content_info.git
 
 # 重启 AstrBot
 ```
@@ -42,7 +42,7 @@ git clone https://github.com/Wan-LaiQiu/astrbot_content_info.git
 ### 方法二：手动安装
 
 1. 下载本仓库代码
-2. 将文件复制到 `AstrBot/data/plugins/astrbot_content_info/` 目录下
+2. 将文件复制到 `AstrBot/data/plugins/astrbot_plugin_content_info/` 目录下
 3. 重启 AstrBot
 
 ## 依赖安装
