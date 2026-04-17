@@ -12,18 +12,7 @@
 
 ## 支持的模型
 
-插件内置了 100+ 种模型的上下文长度配置，包括：
-
-| 平台 | 模型示例 |
-|------|---------|
-| OpenAI | gpt-4o, gpt-4, gpt-3.5-turbo |
-| Moonshot | kimi-k2.5, moonshot-v1-200k |
-| Claude | claude-3-7-sonnet, claude-3-opus |
-| DeepSeek | deepseek-chat, deepseek-reasoner |
-| Gemini | gemini-2.5-pro, gemini-1.5-pro |
-| 通义千问 | qwen-max, qwen-long |
-| 智谱 AI | glm-4, glm-4-plus |
-| Meta | llama-3.3-70b, llama-3.1-405b |
+插件内置了 100+ 种模型的上下文长度配置，包括：gpt、gemini、minimax、claude 、kimi、glm、qwen、deepseek、grok... 具体见model.json文件
 
 ## 安装方法
 
