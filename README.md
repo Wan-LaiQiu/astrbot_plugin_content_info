@@ -12,7 +12,7 @@
 
 ## 支持的模型
 
-插件内置了 100+ 种模型的上下文长度配置，包括：gpt、gemini、minimax、claude 、kimi、glm、qwen、deepseek、grok... 具体见model.json文件
+插件内置了 100+ 种模型的上下文长度配置，包括：gpt、gemini、minimax、claude 、kimi、glm、qwen、deepseek、grok... 具体见models.json文件
 
 ## 安装方法
 
