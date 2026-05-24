@@ -5,6 +5,7 @@ import tiktoken
 import traceback
 import json
 import os
+import re
 
 @register("context_stat", "WanLaiQiu", "统计当前上下文长度(平衡版)", "3.3.3")
 class ContextStatPlugin(Star):
@@ -16,7 +17,8 @@ class ContextStatPlugin(Star):
             self.encoding = None
 
         self.model_context_limits = self._load_model_config()
-        
+        self._config_overrides = self._load_config_overrides()
+
         # 模型关键词用于初步筛选（更宽松）
         self.model_keywords = [
             'gpt', 'claude', 'kimi', 'deepseek', 'gemini', 'llama', 'qwen', 
@@ -38,6 +40,59 @@ class ContextStatPlugin(Star):
             return {"gpt-4": 8192, "gpt-3.5-turbo": 16384}
         except Exception:
             return {"gpt-4": 8192, "gpt-3.5-turbo": 16384}
+
+    def _load_config_overrides(self) -> dict:
+        """从 AstrBot 的 cmd_config.json 读取本地模型的上下文大小"""
+        overrides = {}
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        debug_path = os.path.join(plugin_dir, "config_debug.json")
+        try:
+            # plugin_dir = .../data/plugins/xxx，向上两级到 data 目录
+            data_dir = os.path.dirname(os.path.dirname(plugin_dir))
+            config_path = os.path.join(data_dir, "cmd_config.json")
+            debug_info = {"config_path": config_path, "exists": os.path.exists(config_path)}
+            if not os.path.exists(config_path):
+                debug_info["error"] = "配置文件不存在"
+                with open(debug_path, 'w', encoding='utf-8') as f:
+                    json.dump(debug_info, f, ensure_ascii=False, indent=2)
+                return overrides
+            with open(config_path, 'r', encoding='utf-8-sig') as f:
+                config = json.load(f)
+            all_providers = config.get("provider", [])
+            debug_info["provider_count"] = len(all_providers)
+            debug_info["providers"] = []
+            for provider in all_providers:
+                model = provider.get("model", "")
+                max_tokens = provider.get("max_context_tokens", 0)
+                debug_info["providers"].append({"model": model, "max_context_tokens": max_tokens})
+                if model and max_tokens > 0:
+                    overrides[model.lower()] = max_tokens
+            debug_info["overrides"] = overrides
+            with open(debug_path, 'w', encoding='utf-8') as f:
+                json.dump(debug_info, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            with open(debug_path, 'w', encoding='utf-8') as f:
+                json.dump({"error": str(e)}, f, ensure_ascii=False, indent=2)
+        return overrides
+
+    # GGUF 量化后缀模式
+    _GGUF_QUANT_PATTERN = re.compile(
+        r'[-_.]?(?:'
+        r'Q[2-8]_[KSML](?:_[A-Z])?[\d]*'
+        r'|IQ[34]_[A-Z]{2}'
+        r'|Q4_0|Q5_0|Q8_0'
+        r'|F16|BF16|FP16|FP8'
+        r')(?:[-_.]|$)',
+        re.IGNORECASE
+    )
+
+    def _strip_gguf_suffix(self, model_name: str) -> str:
+        """去掉 GGUF 文件名中的量化后缀和扩展名，返回基础模型名"""
+        name = model_name
+        if name.lower().endswith('.gguf'):
+            name = name[:-5]
+        name = self._GGUF_QUANT_PATTERN.sub('', name)
+        return name.strip('-_. ')
 
     def _is_likely_model_name(self, text: str) -> bool:
         """判断字符串是否可能是模型名称
@@ -218,13 +273,21 @@ class ContextStatPlugin(Star):
         # 匹配 models.json
         if detected_model != "未知模型":
             lower_model = detected_model.lower()
-            
-            if lower_model in self.model_context_limits:
-                return self.model_context_limits[lower_model], detected_model
-                
+            # 去掉 GGUF 量化后缀再匹配
+            clean_model = self._strip_gguf_suffix(lower_model)
+
+            # 优先从 AstrBot 配置读取（本地模型）
+            for candidate in (lower_model, clean_model):
+                if candidate in self._config_overrides:
+                    return self._config_overrides[candidate], detected_model
+
+            for candidate in (lower_model, clean_model):
+                if candidate in self.model_context_limits:
+                    return self.model_context_limits[candidate], detected_model
+
             sorted_keys = sorted(self.model_context_limits.keys(), key=len, reverse=True)
             for key in sorted_keys:
-                if key in lower_model:
+                if key in lower_model or key in clean_model:
                     return self.model_context_limits[key], detected_model
                     
         display_name = f"{detected_model} (默认8K)" if detected_model != "未知模型" else "未知模型 (默认8K)"
